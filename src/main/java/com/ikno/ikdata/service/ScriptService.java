@@ -109,6 +109,8 @@ public class ScriptService {
             ApiResponseDTO<BatchJsonDTO> apiResponseDTO = new ApiResponseDTO<>(false, e.getMessage());
             return new ResponseEntity<>(apiResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
         }
+
+        // If no exceptions return success response
         ApiResponseDTO<BatchJsonDTO> apiResponseDTO = new ApiResponseDTO<>(true, batchJsonResultDTO,
                 "Script successfully executed");
         return new ResponseEntity<>(apiResponseDTO, HttpStatus.OK);
