@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ikno.ikdata.common.Enums.MethodType;
 import com.ikno.ikdata.dto.BatchJsonDTO;
 
 @Service
@@ -25,7 +26,7 @@ public class ScriptService {
     @Value("${ikdata.projects.folder}")
     private String projectsFolderPath;
 
-    public ResponseEntity<BatchJsonDTO> executeScript(long projectId, String method, BatchJsonDTO batchJsonDTO) {
+    public ResponseEntity<BatchJsonDTO> executeScript(long projectId, MethodType method, BatchJsonDTO batchJsonDTO) {
         ObjectMapper objectMapper = new ObjectMapper();
         BatchJsonDTO batchJsonResultDTO = new BatchJsonDTO();
 

@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.ikno.ikdata.common.Enums.MethodType;
 import com.ikno.ikdata.dto.BatchJsonDTO;
 import com.ikno.ikdata.service.ScriptService;
 
@@ -21,7 +22,7 @@ public class ScriptController {
     }
 
     @PostMapping("/execute")
-    public ResponseEntity<BatchJsonDTO> executeScript(@RequestParam long projectId, @RequestParam String method,
+    public ResponseEntity<BatchJsonDTO> executeScript(@RequestParam long projectId, @RequestParam MethodType method,
             @RequestBody BatchJsonDTO batchJsonDTO) {
         return scriptService.executeScript(projectId, method, batchJsonDTO);
     }
