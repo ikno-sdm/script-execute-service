@@ -33,13 +33,17 @@ public class ScriptService {
         ObjectMapper objectMapper = new ObjectMapper();
         BatchJsonDTO batchJsonResultDTO = new BatchJsonDTO();
 
+        String scriptPath = projectsFolderPath + SEPARATOR + "P" + projectId + SEPARATOR + "scripts" + SEPARATOR
+                + method + ".js";
+
         try {
             if (projectId <= 0) {
                 throw new InvalidParameterException("projectId must be an integer bigger than 0");
             }
 
-            String scriptPath = projectsFolderPath + SEPARATOR + "P" + projectId + SEPARATOR + "scripts" + SEPARATOR
-                    + method + ".js";
+            if (!new File(scriptPath).exists()) {
+                throw new IOException("IkData project script " + scriptPath + " does not exist");
+            }
 
             String batchJsonTempPath = projectsFolderPath + SEPARATOR + "P" + projectId + SEPARATOR + "batchJson-"
                     + new Date().getTime() + ".json";
