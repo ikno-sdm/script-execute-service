@@ -1,4 +1,4 @@
-package com.ikno.ikdata.dto;
+package com.ikno.ikdata.dto.batchjson;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;

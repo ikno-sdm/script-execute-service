@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.InvalidParameterException;
 import java.util.Date;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -16,7 +17,8 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ikno.ikdata.common.Enums.MethodType;
-import com.ikno.ikdata.dto.BatchJsonDTO;
+import com.ikno.ikdata.dto.ApiResponseDTO;
+import com.ikno.ikdata.dto.batchjson.BatchJsonDTO;
 
 @Service
 public class ScriptService {
@@ -26,17 +28,21 @@ public class ScriptService {
     @Value("${ikdata.projects.folder}")
     private String projectsFolderPath;
 
-    public ResponseEntity<BatchJsonDTO> executeScript(long projectId, MethodType method, BatchJsonDTO batchJsonDTO) {
+    public ResponseEntity<ApiResponseDTO<BatchJsonDTO>> executeScript(long projectId, MethodType method,
+            BatchJsonDTO batchJsonDTO) {
         ObjectMapper objectMapper = new ObjectMapper();
         BatchJsonDTO batchJsonResultDTO = new BatchJsonDTO();
 
-        String scriptPath = projectsFolderPath + SEPARATOR + "P" + projectId + SEPARATOR + "scripts" + SEPARATOR
-                + method + ".js";
-
-        String batchJsonTempPath = projectsFolderPath + SEPARATOR + "P" + projectId + SEPARATOR + "batchJson-"
-                + new Date().getTime() + ".json";
-
         try {
+            if (projectId <= 0) {
+                throw new InvalidParameterException("projectId must be an integer bigger than 0");
+            }
+
+            String scriptPath = projectsFolderPath + SEPARATOR + "P" + projectId + SEPARATOR + "scripts" + SEPARATOR
+                    + method + ".js";
+
+            String batchJsonTempPath = projectsFolderPath + SEPARATOR + "P" + projectId + SEPARATOR + "batchJson-"
+                    + new Date().getTime() + ".json";
 
             // Temporally saves the batchJson in a file
             String jsonString = objectMapper.writeValueAsString(batchJsonDTO);
@@ -85,14 +91,22 @@ public class ScriptService {
                 throw new IOException(errorOutput.toString());
             }
 
+        } catch (InvalidParameterException e) {
+            e.printStackTrace();
+            ApiResponseDTO<BatchJsonDTO> apiResponseDTO = new ApiResponseDTO<>(false, e.getMessage());
+            return new ResponseEntity<>(apiResponseDTO, HttpStatus.BAD_REQUEST);
         } catch (IOException e) {
             e.printStackTrace();
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            ApiResponseDTO<BatchJsonDTO> apiResponseDTO = new ApiResponseDTO<>(false, e.getMessage());
+            return new ResponseEntity<>(apiResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             e.printStackTrace();
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            ApiResponseDTO<BatchJsonDTO> apiResponseDTO = new ApiResponseDTO<>(false, e.getMessage());
+            return new ResponseEntity<>(apiResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        return new ResponseEntity<>(batchJsonResultDTO, HttpStatus.OK);
+        ApiResponseDTO<BatchJsonDTO> apiResponseDTO = new ApiResponseDTO<>(true, batchJsonResultDTO,
+                "Script successfully executed");
+        return new ResponseEntity<>(apiResponseDTO, HttpStatus.OK);
     }
 }

@@ -1,4 +1,4 @@
-package com.ikno.ikdata.dto;
+package com.ikno.ikdata.dto.batchjson;
 
 import java.util.List;
 
