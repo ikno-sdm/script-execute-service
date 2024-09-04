@@ -21,9 +21,8 @@ public class ScriptController {
     }
 
     @PostMapping("/execute")
-    public ResponseEntity<BatchJsonDTO> executeScript(@RequestParam long projectId,
+    public ResponseEntity<BatchJsonDTO> executeScript(@RequestParam long projectId, @RequestParam String method,
             @RequestBody BatchJsonDTO batchJsonDTO) {
-
-        return scriptService.executeScript(projectId, batchJsonDTO);
+        return scriptService.executeScript(projectId, method, batchJsonDTO);
     }
 }
