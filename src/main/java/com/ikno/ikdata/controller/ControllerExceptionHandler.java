@@ -42,7 +42,7 @@ public class ControllerExceptionHandler {
         });
 
         ApiResponseDTO<Object> response = new ApiResponseDTO<>(false, "Validation failed", "VALIDATION_ERROR");
-        response.setData(errors); // Puedes incluir los detalles de los errores de validación
+        response.setData(errors);
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 

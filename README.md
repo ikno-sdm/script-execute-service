@@ -2,6 +2,8 @@
 ## Microservice to run IkData Scripts
 #### Application.properties
 The `ikdata.projects.folder` property must contain the folder of the IkData  script projects.
+#### Http Method
+POST
 #### Endpoint
 http://localhost:8080/api/scripts/execute
 #### Params
