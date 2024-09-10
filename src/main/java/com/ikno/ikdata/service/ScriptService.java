@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.InvalidParameterException;
@@ -19,14 +18,22 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ikno.ikdata.common.Enums.MethodType;
 import com.ikno.ikdata.dto.ApiResponseDTO;
 import com.ikno.ikdata.dto.batchjson.BatchJsonDTO;
+import com.ikno.ikdata.external.FileService;
 
 @Service
 public class ScriptService {
 
     private static final String SEPARATOR = File.separator;
+    private final ProcessBuilder processBuilder;
+    private final FileService fileService;
 
     @Value("${ikdata.projects.folder}")
     private String projectsFolderPath;
+
+    public ScriptService(ProcessBuilder processBuilder, FileService fileService) {
+        this.processBuilder = processBuilder;
+        this.fileService = fileService;
+    }
 
     public ResponseEntity<ApiResponseDTO<BatchJsonDTO>> executeScript(long projectId, MethodType method,
             BatchJsonDTO batchJsonDTO) {
@@ -41,7 +48,7 @@ public class ScriptService {
                 throw new InvalidParameterException("projectId must be an integer bigger than 0");
             }
 
-            if (!new File(scriptPath).exists()) {
+            if (!fileService.fileExists(scriptPath)) {
                 throw new IOException("IkData project script " + scriptPath + " does not exist");
             }
 
@@ -51,11 +58,11 @@ public class ScriptService {
             // Temporally saves the batchJson in a file
             String jsonString = objectMapper.writeValueAsString(batchJsonDTO);
             Path tempJsonFile = Paths.get(batchJsonTempPath);
-            Files.write(tempJsonFile, jsonString.getBytes());
+            fileService.writeToFile(tempJsonFile, jsonString.getBytes());
 
             // Build the command to execute the NodeJS script using the temp batchJson file
             // as argument
-            ProcessBuilder processBuilder = new ProcessBuilder("node", scriptPath, batchJsonTempPath);
+            processBuilder.command("node", scriptPath, batchJsonTempPath);
             Process process = processBuilder.start();
 
             // Read the standard and error output to get the object result in String
@@ -89,9 +96,9 @@ public class ScriptService {
             if (exitCode == 0) {
                 String batchJsonResultString = output.toString();
                 batchJsonResultDTO = objectMapper.readValue(batchJsonResultString, BatchJsonDTO.class);
-                Files.deleteIfExists(tempJsonFile);
+                fileService.deleteFileIfExists(tempJsonFile);
             } else {
-                Files.deleteIfExists(tempJsonFile);
+                fileService.deleteFileIfExists(tempJsonFile);
                 throw new IOException(errorOutput.toString());
             }
 
