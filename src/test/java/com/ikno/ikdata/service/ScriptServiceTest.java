@@ -136,7 +136,7 @@ class ScriptServiceTest {
         // Simulates calls to delete files
         when(fileService.deleteFileIfExists(any(Path.class))).thenReturn(true);
 
-        // Simula un retorno de proceso igual a 0 (éxito)
+        // Simulates a process return equal to 0 (success)
         Process mockProcess = mock(Process.class);
         when(processBuilder.start()).thenReturn(mockProcess);
         when(mockProcess.waitFor()).thenReturn(0);
