@@ -82,33 +82,34 @@ class ScriptServiceTest {
 
     @Test
     void testExecuteScriptWhenScriptFails() throws IOException, InterruptedException {
+        //Setup
         long projectId = 1L;
         MethodType method = MethodType.VALIDATE;
         BatchJsonDTO batchJsonDTO = new BatchJsonDTO();
         ObjectMapper objectMapper = new ObjectMapper();
 
-        // Simula los llamados a si algun archivo existe
+        // Simulate calls if any file exists
         when(fileService.fileExists(anyString())).thenReturn(true);
 
-        // Simula los llamados a escribir archivos
+        // Simulates calls to write files
         doNothing().when(fileService).writeToFile(any(Path.class), any(byte[].class));
 
-        // Simula los llamados a eliminar archivos
+        // Simulates calls to delete files
         when(fileService.deleteFileIfExists(any(Path.class))).thenReturn(true);
 
-        // Simula un retorno de proceso igual a 1 (error)
+        // Simulates a process return equal to 1 (error)
         Process mockProcess = mock(Process.class);
         when(processBuilder.start()).thenReturn(mockProcess);
         when(mockProcess.waitFor()).thenReturn(1);
 
-        // Simula la captura de la salida
+       // Simulates output capture
         InputStream mockInputStream = new ByteArrayInputStream(
                 objectMapper.writeValueAsString(batchJsonDTO).getBytes());
         InputStream mockErrorStream = new ByteArrayInputStream("".getBytes());
         when(mockProcess.getInputStream()).thenReturn(mockInputStream);
         when(mockProcess.getErrorStream()).thenReturn(mockErrorStream);
 
-        // Ejecucion
+        // Act
         ResponseEntity<ApiResponseDTO<BatchJsonDTO>> response = scriptService.executeScript(projectId, method,
                 batchJsonDTO);
 
@@ -116,6 +117,45 @@ class ScriptServiceTest {
         assertNotNull(response);
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
         assertNotEquals("Script successfully executed", response.getBody().getMessage());
+    }
+
+    @Test
+    void testExecuteScriptWhenScriptSuccess() throws IOException, InterruptedException {
+        // Setup
+        long projectId = 1L;
+        MethodType method = MethodType.VALIDATE;
+        BatchJsonDTO batchJsonDTO = new BatchJsonDTO();
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        // Simulate calls if any file exists
+        when(fileService.fileExists(anyString())).thenReturn(true);
+
+        // Simulates calls to write files
+        doNothing().when(fileService).writeToFile(any(Path.class), any(byte[].class));
+
+        // Simulates calls to delete files
+        when(fileService.deleteFileIfExists(any(Path.class))).thenReturn(true);
+
+        // Simula un retorno de proceso igual a 0 (éxito)
+        Process mockProcess = mock(Process.class);
+        when(processBuilder.start()).thenReturn(mockProcess);
+        when(mockProcess.waitFor()).thenReturn(0);
+
+       // Simulates output capture
+        InputStream mockInputStream = new ByteArrayInputStream(
+                objectMapper.writeValueAsString(batchJsonDTO).getBytes());
+        InputStream mockErrorStream = new ByteArrayInputStream("".getBytes());
+        when(mockProcess.getInputStream()).thenReturn(mockInputStream);
+        when(mockProcess.getErrorStream()).thenReturn(mockErrorStream);
+
+        // Act
+        ResponseEntity<ApiResponseDTO<BatchJsonDTO>> response = scriptService.executeScript(projectId, method, batchJsonDTO);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertTrue(response.getBody().isSuccess());
+        assertEquals("Script successfully executed", response.getBody().getMessage());
     }
 
 }
