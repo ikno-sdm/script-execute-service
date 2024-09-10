@@ -1,36 +1,58 @@
 package com.ikno.ikdata.service;
 
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-import org.junit.jupiter.api.BeforeEach;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Path;
+
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ikno.ikdata.common.Enums;
+import com.ikno.ikdata.common.Enums.MethodType;
 import com.ikno.ikdata.dto.ApiResponseDTO;
 import com.ikno.ikdata.dto.batchjson.BatchJsonDTO;
+import com.ikno.ikdata.external.FileService;
 
-public class ScriptServiceTest {
+@ExtendWith(MockitoExtension.class)
+class ScriptServiceTest {
 
+    @Mock
+    private ProcessBuilder processBuilder;
+
+    @Mock
+    private FileService fileService;
+
+    @InjectMocks
     private ScriptService scriptService;
 
-    @BeforeEach
-    public void setUp() {
-        scriptService = new ScriptService();
-    }
-
+    @SuppressWarnings("null")
     @Test
-    public void testExecuteScriptWithInvalidProjectId() {
+    void testExecuteScriptWithInvalidProjectId() {
         // Setup
         long invalidProjectId = -1L;
-        Enums.MethodType methodType = Enums.MethodType.PRECLASSIFY;
+        Enums.MethodType methodType = MethodType.PRECLASSIFY;
         BatchJsonDTO batchJsonDTO = new BatchJsonDTO();
 
         // Act
-        ResponseEntity<ApiResponseDTO<BatchJsonDTO>> response = scriptService.executeScript(invalidProjectId, methodType, batchJsonDTO);
+        ResponseEntity<ApiResponseDTO<BatchJsonDTO>> response = scriptService.executeScript(invalidProjectId,
+                methodType, batchJsonDTO);
 
         // Assert
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
@@ -39,32 +61,61 @@ public class ScriptServiceTest {
     }
 
     @Test
-    public void testExecuteScriptWhenScriptFileDoesNotExist() throws Exception {
+    void testExecuteScriptWhenScriptFileDoesNotExist() {
         // Setup
         long validProjectId = 1L;
         Enums.MethodType methodType = Enums.MethodType.PRECLASSIFY;
         BatchJsonDTO batchJsonDTO = new BatchJsonDTO();
 
+        // Simula la no existencia del archivo
+        when(fileService.fileExists(anyString())).thenReturn(false);
+
         // Act
-        ResponseEntity<ApiResponseDTO<BatchJsonDTO>> response = scriptService.executeScript(validProjectId, methodType, batchJsonDTO);
+        ResponseEntity<ApiResponseDTO<BatchJsonDTO>> response = scriptService.executeScript(validProjectId, methodType,
+                batchJsonDTO);
 
         // Assert
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
         assertEquals(false, response.getBody().isSuccess());
         assertTrue(response.getBody().getMessage().contains("does not exist"));
-    }  
+    }
 
     @Test
-    public void testExecuteScriptInterrupted() {
-        long validProjectId = 1L;
-        Enums.MethodType methodType = Enums.MethodType.PRECLASSIFY;
+    void testExecuteScriptWhenScriptFails() throws IOException, InterruptedException {
+        long projectId = 1L;
+        MethodType method = MethodType.VALIDATE;
         BatchJsonDTO batchJsonDTO = new BatchJsonDTO();
+        ObjectMapper objectMapper = new ObjectMapper();
 
-        ResponseEntity<ApiResponseDTO<BatchJsonDTO>> response = scriptService.executeScript(validProjectId, methodType, batchJsonDTO);
+        // Simula los llamados a si algun archivo existe
+        when(fileService.fileExists(anyString())).thenReturn(true);
 
+        // Simula los llamados a escribir archivos
+        doNothing().when(fileService).writeToFile(any(Path.class), any(byte[].class));
+
+        // Simula los llamados a eliminar archivos
+        when(fileService.deleteFileIfExists(any(Path.class))).thenReturn(true);
+
+        // Simula un retorno de proceso igual a 1 (error)
+        Process mockProcess = mock(Process.class);
+        when(processBuilder.start()).thenReturn(mockProcess);
+        when(mockProcess.waitFor()).thenReturn(1);
+
+        // Simula la captura de la salida
+        InputStream mockInputStream = new ByteArrayInputStream(
+                objectMapper.writeValueAsString(batchJsonDTO).getBytes());
+        InputStream mockErrorStream = new ByteArrayInputStream("".getBytes());
+        when(mockProcess.getInputStream()).thenReturn(mockInputStream);
+        when(mockProcess.getErrorStream()).thenReturn(mockErrorStream);
+
+        // Ejecucion
+        ResponseEntity<ApiResponseDTO<BatchJsonDTO>> response = scriptService.executeScript(projectId, method,
+                batchJsonDTO);
+
+        // Assert
+        assertNotNull(response);
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertEquals(false, response.getBody().isSuccess());
-        assertNotNull(response.getBody().getMessage(), "Error message should not be null on interruption.");
+        assertNotEquals("Script successfully executed", response.getBody().getMessage());
     }
 
 }
